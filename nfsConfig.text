@@ -1,1 +1,223 @@
-//this file is for nfs configuration vvvvvv
+NFS CONFIGURATION
+----------------->
+### Setting Up an NFS Server and Client on Linux
+
+#### On the Server Machine:
+
+##### Step 1: Set the Hostname
+Set the hostname for the server machine.
+
+```sh
+sudo hostnamectl set-hostname <server_hostname>
+```
+
+##### Step 2: Check Available Repositories
+Verify the available repositories.
+
+```sh
+dnf repolist
+```
+
+##### Step 3: Install NFS Utilities
+Install the necessary NFS utilities.
+
+```sh
+sudo dnf install nfs-utils -y
+```
+
+##### Step 4: Start and Enable the NFS Server
+Start the NFS server and enable it to start on boot.
+
+```sh
+sudo systemctl enable --now nfs-server.service
+```
+
+##### Step 5: Check NFS Server Status
+Verify that the NFS server is running.
+
+```sh
+sudo systemctl status nfs-server.service
+```
+
+##### Step 6: Check the NFS Port Number
+Find the port number used by NFS (usually 2049).
+
+```sh
+rpcinfo -p | grep nfs
+```
+
+##### Step 7: Create a Shared Directory
+Create the directory to be shared with the client machines.
+
+```sh
+sudo mkdir -p /mnt/nfs_shares/docs
+```
+
+##### Step 8: Check the Owner of the Shared Directory
+Check the owner of the shared directory.
+
+```sh
+ls -ld /mnt/nfs_shares/docs
+```
+
+##### Step 9: Change Ownership to Nobody User
+Change the ownership of the shared directory to the `nobody` user.
+
+```sh
+sudo chown -R nobody: /mnt/nfs_shares/docs
+```
+
+##### Step 10: Set Full Permissions on the Shared Directory
+Grant full permissions to the shared directory.
+
+```sh
+sudo chmod -R 777 /mnt/nfs_shares/docs
+```
+
+##### Step 11: Verify Permissions
+Check the permissions of the shared directory.
+
+```sh
+ls -ld /mnt/nfs_shares/docs
+```
+
+##### Step 12: Restart NFS Utilities Service
+Restart the NFS utilities service.
+
+```sh
+sudo systemctl restart nfs-server.service
+```
+
+##### Step 13: Configure NFS Exports
+Add the shared directory to the NFS exports configuration file to allow access from the client machine.
+
+```sh
+sudo vi /etc/exports
+```
+
+Add the following line to the file:
+
+```
+/mnt/nfs_shares/docs <client_ip>(rw,sync,no_all_squash,root_squash)
+```
+
+Save and exit (`:wq`).
+
+##### Step 14: Check the Exports File
+Verify the contents of the exports file.
+
+```sh
+cat /etc/exports
+```
+
+##### Step 15: Verify the Export Configuration
+Apply and verify the export configuration.
+
+```sh
+sudo exportfs -arv
+```
+
+##### Step 16: Configure the Firewall
+Allow NFS-related services through the firewall.
+
+```sh
+sudo firewall-cmd --permanent --add-service=nfs
+sudo firewall-cmd --permanent --add-service=rpc-bind
+sudo firewall-cmd --permanent --add-service=mountd
+sudo firewall-cmd --reload
+```
+
+##### Step 17: Check Firewall Status
+Ensure the firewall is active and configured correctly.
+
+```sh
+sudo firewall-cmd --list-all
+```
+
+#### On the Client Machine:
+
+##### Step 1: Set the Hostname
+Set the hostname for the client machine.
+
+```sh
+sudo hostnamectl set-hostname <client_hostname>
+```
+
+##### Step 2: Check Available Repositories
+Verify the available repositories.
+
+```sh
+dnf repolist
+```
+
+##### Step 3: Install NFS Utilities
+Install the necessary NFS utilities and tools.
+
+```sh
+sudo dnf install nfs-utils nfs4-acl-tools -y
+```
+
+##### Step 4: Show NFS Exports from the Server
+List the available NFS shares on the server.
+
+```sh
+showmount -e <server_ip>
+```
+
+##### Step 5: Create a Directory to Mount the NFS Share
+Create a directory to mount the NFS share.
+
+```sh
+sudo mkdir -p /mnt/client_shares
+```
+
+##### Step 6: Mount the NFS Share
+Mount the shared directory from the server.
+
+```sh
+sudo mount -t nfs <server_ip>:/mnt/nfs_shares/docs /mnt/client_shares
+```
+
+##### Step 7: Verify the Mounted Share
+Check the mounted file system.
+
+```sh
+df -ht
+```
+
+##### Step 8: Check Mounted NFS Share
+Verify that the NFS share is mounted.
+
+```sh
+mount | grep -i nfs
+```
+
+Navigate to the mounted directory:
+
+```sh
+cd /mnt/client_shares/
+```
+
+#### Verify the Setup
+
+1. **On the Server Machine:**
+   Create a test file in the shared directory.
+
+   ```sh
+   cd /mnt/nfs_shares/docs/
+   echo "This is the server file configuration" > serverfile1.txt
+   cat serverfile1.txt
+   ```
+
+2. **On the Client Machine:**
+   List the contents of the shared directory to verify access.
+
+   ```sh
+   ls -lh /mnt/client_shares/
+   ```
+
+   You should see the `serverfile1.txt` file created on the server.
+
+---
+
+By following these steps, you will have successfully configured an NFS server and client, allowing file sharing between the two machines.
