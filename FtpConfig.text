@@ -1,2 +1,177 @@
 FTP CONFIGURATION
 ------------------>
+### Setting Up and Using `vsftpd` on a Linux System
+
+#### On the Server Machine:
+
+##### Step 1: Check Available Repositories
+Verify the available repositories on your system.
+
+```sh
+dnf repolist
+```
+
+##### Step 2: Install FTP and `vsftpd`
+Install the `ftp` client and the `vsftpd` server using the package manager.
+
+```sh
+sudo yum install -y ftp vsftpd
+```
+
+##### Step 3: Configure `vsftpd`
+Edit the `vsftpd` configuration file to allow anonymous access.
+
+1. Open the `vsftpd` configuration file in a text editor:
+
+   ```sh
+   sudo vi /etc/vsftpd/vsftpd.conf
+   ```
+
+2. Find the line `anonymous_enable=NO` and change it to `anonymous_enable=YES`.
+
+3. Save and exit the file (`:wq`).
+
+##### Step 4: Enable and Start the `vsftpd` Service
+Start the `vsftpd` service and enable it to start on boot. Then check the status to ensure it is running correctly.
+
+```sh
+sudo systemctl start vsftpd.service
+sudo systemctl enable vsftpd.service
+sudo systemctl status vsftpd.service
+```
+
+##### Step 5: Configure the Firewall
+Allow FTP service through the firewall.
+
+```sh
+sudo firewall-cmd --permanent --add-service=ftp
+sudo firewall-cmd --reload
+```
+
+##### Step 6: Navigate to Public FTP Directory
+Go to the public FTP directory.
+
+```sh
+cd /var/ftp/pub
+```
+
+##### Step 7: Create a Text File
+Create a text file in the public FTP directory.
+
+```sh
+cal > calender.txt
+```
+
+You can now check the file by accessing the machine's IP in the browser.
+
+##### Step 8: Return to the Home Directory
+Navigate back to the home directory.
+
+```sh
+cd
+```
+
+##### Step 9: Log in as Anonymous User
+Log in to the FTP server as an anonymous user.
+
+```sh
+ftp localhost
+```
+
+When prompted, enter `anonymous` as the username and any password (e.g., `guddu@gmail.com`).
+
+```sh
+Name (localhost:root): anonymous
+Password: guddu@gmail.com
+```
+
+List the directory contents:
+
+```sh
+ls
+```
+
+Navigate to the public directory:
+
+```sh
+cd pub
+ls
+```
+
+To exit the FTP session, type:
+
+```sh
+bye
+```
+
+##### Step 10: Log in as Local User
+Switch to a local user account and log in to the FTP server.
+
+1. Switch to the user account (replace `guddu` with the actual username):
+
+   ```sh
+   su - guddu
+   ```
+
+2. List the directory contents:
+
+   ```sh
+   ll
+   ```
+
+3. Log in to the FTP server:
+
+   ```sh
+   ftp localhost
+   ```
+
+4. When prompted, enter the username and password:
+
+   ```sh
+   Name (localhost:guddu): guddu
+   Password: <your_password>
+   ```
+
+5. List the directory contents:
+
+   ```sh
+   ls
+   ```
+
+6. To exit the FTP session, type:
+
+   ```sh
+   bye
+   ```
+
+#### On the Client Machine:
+
+##### Step 1: Install FTP Client
+Install the FTP client using the package manager.
+
+```sh
+sudo yum install -y ftp
+```
+
+##### Step 2: Log in to the FTP Server
+Log in to the FTP server using the server's IP address.
+
+```sh
+ftp <main_machine_ip>
+```
+
+When prompted, enter the username and password:
+
+```sh
+Name (main_machine_ip:root): guddu
+Password: <your_password>
+```
+
+##### Step 3: Copy File from Server to Client
+Use the `mget` command to copy a file from the server to the client machine.
+
+```sh
+mget <file_name>
+```
+
+By following these documented steps, you will have successfully set up, configured, and used the `vsftpd` FTP server, allowing both anonymous and local user access. Additionally, you will have learned how to connect to the FTP server from a client machine and transfer files.
