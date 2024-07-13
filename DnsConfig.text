@@ -1,0 +1,153 @@
+# DNS CONFIGURATION ON RHEL-8
+
+## Prerequisites
+- **Server Hostname:** server.dns.com
+- **Server IP Address:** 192.168.47.136
+- **Client Hostname:** client.dns.com
+- **Client IP Address:** 192.168.47.134
+
+## Configuration of DNS Server
+
+### Step 1: Install BIND Package
+```bash
+dnf install bind bind-utils -y
+```
+
+### Step 2: Start, Enable, and Check the Status of the Service
+```bash
+systemctl start named.service
+systemctl enable named.service
+systemctl status named.service
+```
+
+### Step 3: Configure BIND DNS Server
+1. **Backup the original configuration file:**
+    ```bash
+    cp /etc/named.conf /etc/named.bak
+    ```
+
+2. **Edit the `named.conf` file:**
+    ```bash
+    vi /etc/named.conf
+    ```
+
+3. **Modify the `named.conf` file as follows:**
+    ```conf
+    options {
+        listen-on port 53 { 127.0.0.1; 192.168.47.136; };
+        allow-query { localhost; 192.168.47.0/24; };
+    };
+
+    // Forward zone
+    zone "dns.com" IN {
+        type master;
+        file "dns.com.db";
+        allow-update { none; };
+        allow-query { any; };
+    };
+
+    // Reverse zone
+    zone "134.47.168.192.in-addr.arpa" IN {
+        type master;
+        file "dns.com.rev";
+        allow-update { none; };
+        allow-query { any; };
+    };
+    ```
+
+### Step 4: Create Forward Zone File
+1. **Edit or create the forward zone file:**
+    ```bash
+    vi /var/named/dns.com.db
+    ```
+
+2. **Add the following content:**
+    ```dns
+    $TTL 86400
+    @ IN SOA server.dns.com. root. (
+                                2020011800 ; Serial
+                                3600 ; Refresh
+                                1800 ; Retry
+                                604800 ; Expire
+                                86400 ; Minimum TTL
+    )
+    ; Name Server Information
+    @ IN NS server.dns.com.
+
+    ; IP Address for Name Server
+    server IN A 192.168.47.136
+
+    ; A Record for the following Host name
+    client IN A 192.168.47.134
+    ```
+
+### Step 5: Create Reverse Zone File
+1. **Edit or create the reverse zone file:**
+    ```bash
+    vi /var/named/dns.com.rev
+    ```
+
+2. **Add the following content:**
+    ```dns
+    $TTL 86400
+    @ IN SOA server.dns.com. root. (
+                                2020011800 ; Serial
+                                3600 ; Refresh
+                                1800 ; Retry
+                                604800 ; Expire
+                                86400 ; Minimum TTL
+    )
+
+    ; Name Server Information
+    @ IN NS server.dns.com.
+    server IN A 192.168.47.136
+
+    ; Reverse lookup for Name Server
+    136 IN PTR server.dns.com.
+
+    ; PTR Record IP address to Hostname
+    134 IN PTR client.dns.com.
+    ```
+
+### Step 6: Change Ownership of the Zone Files
+```bash
+chown named:named /var/named/dns.com.db
+chown named:named /var/named/dns.com.rev
+```
+
+### Step 7: Check the Configuration
+```bash
+named-checkconf
+named-checkzone dns.com /var/named/dns.com.db
+named-checkzone 192.168.47.136 /var/named/dns.com.rev
+```
+
+### Step 8: Restart the Named Service
+```bash
+systemctl restart named.service
+```
+
+### Step 9: Configure Firewall
+```bash
+firewall-cmd --permanent --add-port=53/tcp
+firewall-cmd --reload
+```
+
+## Configuration on Client Machine
+
+1. **Edit the `resolv.conf` file:**
+    ```bash
+    vi /etc/resolv.conf
+    ```
+
+2. **Add the following lines:**
+    ```conf
+    nameserver 192.168.47.136
+    nameserver 8.8.8.8
+    ```
+
+3. **Use the `dig` command to verify:**
+    ```bash
+    dig server.dns.com
+    dig -x 192.168.47.136
+    ```
