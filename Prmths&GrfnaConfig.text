@@ -1,0 +1,140 @@
+# PROMETHEUS NODE_EXPORTER GRAFANA CONFIGURATION
+
+## Setting Up Prometheus
+
+1. **Create a directory for Prometheus:**
+    ```bash
+    mkdir prometheus
+    cd prometheus/
+    ```
+
+2. **Download Prometheus:**
+    ```bash
+    wget <paste_prometheus_download_link>
+    ```
+
+3. **Extract the Prometheus file:**
+    ```bash
+    tar xvzf prometheus-2.33.4.linux-amd64.tar.gz
+    ```
+
+4. **Verify the extraction:**
+    ```bash
+    ls -lart
+    ```
+
+5. **Navigate to the extracted directory:**
+    ```bash
+    cd prometheus-2.33.4.linux-amd64
+    ls -lart
+    ```
+
+6. **Run Prometheus:**
+    ```bash
+    ./prometheus
+    ```
+
+7. **Access Prometheus:**
+    Open a browser and go to `http://192.168.67.74:9090/graph`.
+
+## Configuring Node Exporter on Prometheus Server
+
+1. **Create a directory for Node Exporter:**
+    ```bash
+    mkdir nodeexporter
+    cd nodeexporter/
+    ```
+
+2. **Download Node Exporter:**
+    ```bash
+    wget <paste_node_exporter_download_link>
+    ```
+
+3. **Extract the Node Exporter file:**
+    ```bash
+    tar xvzf node_exporter-1.3.1.linux-amd64.tar.gz
+    ```
+
+4. **Verify the extraction:**
+    ```bash
+    ls -lart
+    ```
+
+5. **Navigate to the extracted directory:**
+    ```bash
+    cd node_exporter-1.3.1.linux-amd64
+    ```
+
+6. **Check the contents:**
+    ```bash
+    ls -lart
+    ```
+
+7. **Edit `prometheus.yml` to add Node Exporter:**
+    ```yaml
+    scrape_configs:
+      - job_name: 'node_exporter'
+        static_configs:
+          - targets: ['192.168.67.74:9100']
+    ```
+
+8. **Start Node Exporter:**
+    ```bash
+    ./node_exporter --web.listen-address 192.168.67.74:9100
+    ```
+
+9. **Verify Node Exporter:**
+    Open a browser and go to `http://192.168.67.74:9100`.
+
+## Installing Grafana
+
+1. **Update the system:**
+    ```bash
+    sudo yum update -y
+    ```
+
+2. **Add the Grafana repository:**
+    ```bash
+    sudo tee /etc/yum.repos.d/grafana.repo <<-'EOF'
+    [grafana]
+    name=grafana
+    baseurl=https://packages.grafana.com/oss/rpm
+    repo_gpgcheck=1
+    enabled=1
+    gpgcheck=1
+    gpgkey=https://packages.grafana.com/gpg.key
+    sslverify=1
+    sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+    EOF
+    ```
+
+3. **Install Grafana:**
+    ```bash
+    sudo yum install grafana -y
+    ```
+
+4. **Start and enable Grafana service:**
+    ```bash
+    sudo systemctl start grafana-server
+    sudo systemctl enable grafana-server
+    ```
+
+5. **Open the firewall for Grafana:**
+    ```bash
+    sudo firewall-cmd --zone=public --add-port=3000/tcp --permanent
+    sudo firewall-cmd --reload
+    ```
+
+6. **Access Grafana:**
+    Open a browser and go to `http://server_ip:3000`.
+
+7. **Login to Grafana:**
+    - Username: `admin`
+    - Password: `admin`
+
+8. **Verify the installation:**
+    ```bash
+    sudo systemctl start grafana-server
+    sudo systemctl enable grafana-server
+    sudo systemctl status grafana-server
+    ```
