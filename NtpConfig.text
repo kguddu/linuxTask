@@ -1,0 +1,88 @@
+
+
+## NTP SERVER CONFIGURATION
+
+1. **Check repolist:**
+   ```bash
+   dnf repolist all
+   ```
+
+2. **Install Chrony:**
+   ```bash
+   dnf install chrony* -y
+   ```
+
+3. **Start Chrony service:**
+   ```bash
+   systemctl enable chronyd --now
+   ```
+
+4. **Edit the Chrony configuration:**
+   ```bash
+   vi /etc/chrony.conf
+   ```
+   - Allow NTP client access for the local network:
+     - Uncomment the line and set the local network IP range:
+     ```plaintext
+     allow 192.168.0.0/24
+     ```
+     - Save and exit.
+
+5. **Restart Chrony:**
+   ```bash
+   systemctl restart chronyd
+   ```
+
+6. **Configure the firewall:**
+   ```bash
+   firewall-cmd --permanent --add-service=ntp --zone=public
+   firewall-cmd --permanent --reload
+   firewall-cmd --permanent --list-all
+   ```
+
+7. **Check client machines attached to the server:**
+   ```bash
+   chronyc clients
+   ```
+
+## NTP Client Configuration
+
+1. **Check repolist:**
+   ```bash
+   dnf repolist all
+   ```
+
+2. **Install Chrony:**
+   ```bash
+   dnf install chrony* -y
+   ```
+
+3. **Edit the Chrony configuration:**
+   ```bash
+   vi /etc/chrony.conf
+   ```
+   - Comment out the default pool server line:
+     ```plaintext
+     # pool 2.rhel.pool.ntp.org iburst
+     ```
+   - Add your server machine IP:
+     ```plaintext
+     server <server machine ip> iburst
+     ```
+   - Save and exit.
+
+4. **Restart the Chrony service:**
+   ```bash
+   systemctl restart chronyd
+   systemctl status chronyd
+   ```
+
+5. **Check connected servers:**
+   ```bash
+   chronyc sources
+   ```
+
+6. **Check date and time:**
+   ```bash
+   timedatectl
+   ```
