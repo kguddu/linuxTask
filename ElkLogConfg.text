@@ -1,0 +1,224 @@
+
+## Configure ELK Logging
+
+
+### Update the System and Set Hostname
+```bash
+sudo yum update -y
+sudo hostnamectl set-hostname elk.domain.com
+```
+
+### Install Java JDK
+```bash
+sudo yum install java -y
+```
+
+### Add Elasticsearch Repository
+```bash
+sudo rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+sudo tee /etc/yum.repos.d/elasticsearch.repo <<EOF
+[elasticsearch]
+name=Elasticsearch repository
+baseurl=https://artifacts.elastic.co/packages/7.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md
+EOF
+```
+
+### Install Elasticsearch
+```bash
+sudo yum install elasticsearch -y
+# or
+sudo yum install elasticsearch-oss -y
+```
+
+### Configure `elasticsearch.yml`
+Edit the configuration file `/etc/elasticsearch/elasticsearch.yml` and update the following settings:
+
+```yaml
+cluster.name: elk
+node.name: elk.domain.com
+network.host: <server_ip_address>
+discovery.seed_hosts: ["elk.domain.com"]
+cluster.initial_master_nodes: ["elk.domain.com"]
+```
+
+### Start and Enable Elasticsearch
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable elasticsearch
+sudo systemctl start elasticsearch
+```
+
+### Verify Elasticsearch
+```bash
+curl -X GET http://<machine_ip>:9200
+```
+
+### Check Cluster Health
+```bash
+curl -XGET 'http://<machine_ip>:9200/_cluster/health?pretty'
+```
+
+## Configure Logstash
+
+### Install Logstash
+```bash
+sudo yum install -y logstash
+cd /etc/logstash/
+```
+
+### Create Logstash Configuration File
+Create a file `/etc/logstash/conf.d/beats.conf` with the following content:
+```plaintext
+input {
+    beats {
+        port => 5044
+    }
+}
+filter {
+    if [type] == "syslog" {
+        grok {
+            match => { "message" => "%{SYSLOGLINE}" }
+        }
+        date {
+            match => ["timestamp", "MMM d HH:mm:ss", "MMM dd HH:mm:ss"]
+        }
+    }
+}
+output {
+    elasticsearch {
+        hosts => ["<machine_ip>:9200"]
+        index => "%{[@metadata][beat]}-%{+YYYY.MM.dd}"
+    }
+}
+```
+Save and exit.
+
+### Change Ownership and Permissions
+```bash
+sudo chown -R logstash:logstash /etc/logstash/conf.d/beats.conf
+sudo chmod -R 755 /etc/logstash/conf.d/beats.conf
+```
+
+### Start and Enable Logstash
+```bash
+sudo systemctl start logstash
+sudo systemctl enable logstash
+```
+
+### Install Net-tools and Check Port Status
+```bash
+sudo yum install net-tools -y
+sudo netstat -antup | grep -i 5044
+```
+
+## Configure Kibana
+
+### Install Kibana
+```bash
+sudo yum install -y kibana-oss
+```
+
+### Configure `kibana.yml`
+Edit the configuration file `/etc/kibana/kibana.yml` and update the following settings:
+```yaml
+server.host: "0.0.0.0"
+elasticsearch.hosts: ["http://<machine_ip>:9200"]
+```
+Save and exit.
+
+### Start and Enable Kibana
+```bash
+sudo systemctl start kibana
+sudo systemctl enable kibana
+```
+
+### Check Port Status
+```bash
+sudo netstat -antup | grep -i 5601
+```
+
+## Configure Filebeat
+
+### Install Filebeat
+```bash
+sudo yum install filebeat -y
+```
+
+### Configure `filebeat.yml`
+Edit the configuration file `/etc/filebeat/filebeat.yml`:
+```yaml
+output.logstash:
+  hosts: ["<machine_ip>:5044"]
+```
+
+### Change Log Paths
+In the same file, change log paths from `/var/log/.log` to `/var/log/messages`.
+
+Save and exit.
+
+### Start and Enable Filebeat
+```bash
+sudo systemctl start filebeat
+sudo systemctl enable filebeat
+```
+
+## Configure Client Machine
+
+### Add Elasticsearch Repository on Client
+```bash
+sudo tee /etc/yum.repos.d/elasticsearch.repo <<EOF
+[elasticsearch]
+name=Elasticsearch repository
+baseurl=https://artifacts.elastic.co/packages/7.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md
+EOF
+
+sudo rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+```
+
+### Install Filebeat on Client
+```bash
+sudo yum install filebeat -y
+```
+
+### Configure `filebeat.yml` on Client
+Edit the configuration file `/etc/filebeat/filebeat.yml`:
+```yaml
+output.logstash:
+  hosts: ["<main_server_ip>:5044"]
+```
+Save and exit.
+
+### Enable System Module
+```bash
+filebeat modules list
+filebeat modules enable system
+```
+
+### Configure System Module
+Edit the file `/etc/filebeat/modules.d/system.yml`:
+```yaml
+- module: system
+  syslog:
+    enabled: true
+    var.paths: ["/var/log/messages"]
+  auth:
+    enabled: true
+    var.paths: ["/var/log/audit/audit.log"]
+```
+
+### Start and Enable Filebeat on Client
+```bash
+sudo systemctl enable filebeat
+sudo systemctl start filebeat
+```
